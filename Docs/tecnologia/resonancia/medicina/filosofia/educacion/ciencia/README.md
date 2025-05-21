@@ -1,3 +1,3 @@
-# Sección: Tecnologia
+# Sección: Ciencia
 
-Esta carpeta contiene material simbiótico para la sección tecnologia del portal IS.
+Esta carpeta contiene material simbiótico para la sección ciencia del portal IS.
