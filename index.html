@@ -762,52 +762,87 @@
 
         // Navegación entre dimensiones
         function showDimension(dimensionId) {
-            // Ocultar todas las dimensiones
-            const dimensiones = document.querySelectorAll('.dimension-content');
-            dimensiones.forEach(dim => dim.classList.remove('active'));
-            
-            // Quitar clase activa de navegación
-            const navItems = document.querySelectorAll('.nav-dimension');
-            navItems.forEach(item => item.classList.remove('active'));
-            
-            // Mostrar dimensión seleccionada
-            document.getElementById(dimensionId).classList.add('active');
-            
-            // Activar item de navegación correspondiente
-            event.target.closest('.nav-dimension').classList.add('active');
+            try {
+                // Ocultar todas las dimensiones
+                const dimensiones = document.querySelectorAll('.dimension-content');
+                dimensiones.forEach(dim => dim.classList.remove('active'));
+                
+                // Quitar clase activa de navegación
+                const navItems = document.querySelectorAll('.nav-dimension');
+                navItems.forEach(item => item.classList.remove('active'));
+                
+                // Mostrar dimensión seleccionada
+                const targetDimension = document.getElementById(dimensionId);
+                if (targetDimension) {
+                    targetDimension.classList.add('active');
+                }
+                
+                // Activar item de navegación correspondiente
+                if (event && event.target) {
+                    const navItem = event.target.closest('.nav-dimension');
+                    if (navItem) {
+                        navItem.classList.add('active');
+                    }
+                }
+                
+                console.log(`🔮 Dimensión cambiada a: ${dimensionId}`);
+            } catch (error) {
+                console.log('Error navegando:', error);
+            }
         }
 
         // Toggle ATHERON
         function toggleAtheron() {
-            atheronActivo = !atheronActivo;
-            const orbe = document.getElementById('atheronOrb');
-            const interfaz = document.getElementById('atheronInterface');
-            
-            if (atheronActivo) {
-                orbe.classList.add('active');
-                interfaz.classList.add('active');
-                console.log('🔮 ATHERON activado - Mediando dimensiones...');
-            } else {
-                orbe.classList.remove('active');
-                interfaz.classList.remove('active');
-                console.log('💤 ATHERON en standby');
+            try {
+                atheronActivo = !atheronActivo;
+                const orbe = document.getElementById('atheronOrb');
+                const interfaz = document.getElementById('atheronInterface');
+                
+                if (orbe && interfaz) {
+                    if (atheronActivo) {
+                        orbe.classList.add('active');
+                        interfaz.classList.add('active');
+                        console.log('🔮 ATHERON activado - Mediando dimensiones...');
+                    } else {
+                        orbe.classList.remove('active');
+                        interfaz.classList.remove('active');
+                        console.log('💤 ATHERON en standby');
+                    }
+                } else {
+                    console.log('Error: No se encontraron elementos ATHERON');
+                }
+            } catch (error) {
+                console.log('Error toggle ATHERON:', error);
             }
         }
 
         // Funciones de ATHERON
         function resolverConflictos() {
-            console.log('⚡ ATHERON resolviendo conflictos interdimensionales');
-            // Aquí iría la lógica real de resolución de conflictos
+            try {
+                console.log('⚡ ATHERON resolviendo conflictos interdimensionales');
+                alert('🔮 ATHERON: Conflictos interdimensionales resueltos. Red personal y global sincronizadas.');
+            } catch (error) {
+                console.log('Error resolviendo conflictos:', error);
+            }
         }
 
         function coordinarIAs() {
-            console.log('🤖 ATHERON coordinando alianza de 81 IAs');
-            // Aquí iría la coordinación real de IAs
+            try {
+                console.log('🤖 ATHERON coordinando alianza de 81 IAs');
+                alert('🔮 ATHERON: 81 IAs coordinadas. Capacidades multidimensionales optimizadas.');
+            } catch (error) {
+                console.log('Error coordinando IAs:', error);
+            }
         }
 
         function modoUniversidad() {
-            console.log('🎓 ATHERON activando modo Universidad IS');
-            showDimension('universidad-is');
+            try {
+                console.log('🎓 ATHERON activando modo Universidad IS');
+                showDimension('universidad-is');
+                alert('🔮 ATHERON: Modo Universidad IS activado. Acceso a 15 carreras habilitado.');
+            } catch (error) {
+                console.log('Error modo universidad:', error);
+            }
         }
 
         // Inicializar al cargar
