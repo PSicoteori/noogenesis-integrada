@@ -1,4 +1,83 @@
-<!DOCTYPE html>
+// VEKTION - Sistema CORREGIDO para escucha real sin auto-respuestas
+        let vektionActive = false;
+        let vektionListening = false;
+        let vektionConversationHistory = [];
+        let vektionSpeechRecognition = null;
+        let vektionIsSpeaking = false;
+        let vektionLastInput = "";
+
+        function initializeVektion() {
+            console.log('🜃 VEKTION v5.0 - Escucha Real Sin Interferencias...');
+            
+            // Configurar reconocimiento de voz SIN auto-respuestas
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                vektionSpeechRecognition = new SpeechRecognition();
+                
+                // Configuración para ESCUCHA REAL
+                vektionSpeechRecognition.continuous = false; // Solo una frase a la vez
+                vektionSpeechRecognition.interimResults = false; // Solo resultados finales
+                vektionSpeechRecognition.lang = 'es-ES';
+                vektionSpeechRecognition.maxAlternatives = 1;
+                
+                vektionSpeechRecognition.onstart = function() {
+                    vektionLog('🎤 Escuchando... habla ahora');
+                };
+                
+                vektionSpeechRecognition.onresult = function(event) {
+                    if (vektionIsSpeaking) return; // Ignorar si VEKTION está hablando
+                    
+                    const result = event.results[0];
+                    if (result.isFinal && result[0].confidence > 0.7) {
+                        const input = result[0].transcript.trim().toLowerCase();
+                        
+                        // Filtrar auto-detección de la voz de VEKTION
+                        if (input.includes('vektion') || 
+                            input.includes('te estoy escuchando') || 
+                            input.includes('habla cuando quieras') ||
+                            input === vektionLastInput) {
+                            vektionLog('🔇 Ignorando auto-detección');
+                            return;
+                        }
+                        
+                        if (input.length > 3) {
+                            vektionProcessRealUserInput(input);
+                        }
+                    }
+                };
+                
+                vektionSpeechRecognition.onerror = function(event) {
+                    if (event.error === 'no-speech') {
+                        vektionLog('🔇 Tiempo de espera terminado');
+                        vektionStopListening();
+                    } else {
+                        vektionLog('❌ Error: ' + event.error);
+                    }
+                };
+
+                vektionSpeechRecognition.onend = function() {
+                    vektionLog('🔇 Reconocimiento terminado');
+                    vektionStopListening();
+                };
+            }
+            
+            vektionLog('✅ VEKTION listo para escuchar SIN interferencias');
+        }
+
+        function toggleVektion() {
+            const interface = document.getElementById('vektion-interface');
+            vektionActive = !vektionActive;
+            
+            if (vektionActive) {
+                interface.classList.add('active');
+                vektionLog('🜃 VEKTION activado');
+                
+                // NO auto-saludo, esperar comando del usuario
+                vektionLog('💬 Usa el micrófono para hablar o los botones para acciones');
+            } else {
+                interface.classList.remove('active');
+                vektionStopListening();
+                vektionLog('💤 VEKTION en<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
