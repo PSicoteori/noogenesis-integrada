@@ -56,86 +56,102 @@
             line-height: 1.8;
         }
 
-        /* Status Control - Arriba Izquierda */
-        .status-control {
+        /* Botón de Control Discreto */
+        .atheron-toggle {
             position: fixed;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.95);
-            border: 3px solid #4facfe;
-            border-radius: 20px;
-            padding: 2rem;
-            max-width: 450px;
-            z-index: 999;
-            backdrop-filter: blur(20px);
-        }
-
-        .status-title {
-            color: #4facfe;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: bold;
-            text-align: center;
-            text-shadow: 0 0 20px #4facfe;
-        }
-
-        .control-status {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #666;
             display: flex;
             align-items: center;
-            margin: 1rem 0;
-            font-size: 1.2rem;
-            padding: 0.5rem;
-            border-radius: 10px;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 999;
+            backdrop-filter: blur(10px);
+        }
+
+        .atheron-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .atheron-toggle.inactivo {
+            border-color: #666;
+            box-shadow: 0 0 10px rgba(100, 100, 100, 0.2);
+        }
+
+        .atheron-toggle.escuchando {
+            border-color: #4facfe;
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+            animation: pulseToggle 2s ease-in-out infinite;
+        }
+
+        .atheron-toggle.activo {
+            border-color: #43e97b;
+            background: rgba(67, 233, 123, 0.2);
+            box-shadow: 0 0 25px rgba(67, 233, 123, 0.6);
+        }
+
+        .atheron-toggle.procesando {
+            border-color: #fee140;
+            background: rgba(254, 225, 64, 0.2);
+            box-shadow: 0 0 20px rgba(254, 225, 64, 0.5);
+        }
+
+        @keyframes pulseToggle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .toggle-icon {
+            font-size: 1.5rem;
+            color: #666;
             transition: all 0.3s ease;
         }
 
-        .status-icon {
-            margin-right: 1rem;
-            font-size: 1.5rem;
-        }
-
-        .status-inactivo {
+        .atheron-toggle.inactivo .toggle-icon {
             color: #666;
-            background: rgba(100, 100, 100, 0.1);
         }
 
-        .status-escuchando {
+        .atheron-toggle.escuchando .toggle-icon {
             color: #4facfe;
-            background: rgba(79, 172, 254, 0.2);
-            box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+            text-shadow: 0 0 10px #4facfe;
         }
 
-        .status-activo {
+        .atheron-toggle.activo .toggle-icon {
             color: #43e97b;
-            background: rgba(67, 233, 123, 0.2);
-            box-shadow: 0 0 20px rgba(67, 233, 123, 0.3);
+            text-shadow: 0 0 15px #43e97b;
         }
 
-        .status-procesando {
+        .atheron-toggle.procesando .toggle-icon {
             color: #fee140;
-            background: rgba(254, 225, 64, 0.2);
-            box-shadow: 0 0 20px rgba(254, 225, 64, 0.3);
+            text-shadow: 0 0 10px #fee140;
         }
 
-        .comando-info {
-            background: rgba(67, 233, 123, 0.1);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-top: 1.5rem;
-            border-left: 4px solid #43e97b;
-        }
-
-        .comando-titulo {
-            color: #43e97b;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .comando-texto {
+        /* Tooltip Info */
+        .atheron-toggle::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 60px;
+            left: 0;
+            background: rgba(0, 0, 0, 0.9);
             color: #fff;
-            font-size: 1rem;
-            line-height: 1.6;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .atheron-toggle:hover::after {
+            opacity: 1;
         }
 
         /* Núcleo Simbiótico - Esquina Inferior Derecha */
@@ -428,35 +444,9 @@
     </style>
 </head>
 <body>
-    <!-- Status Control -->
-    <div class="status-control">
-        <div class="status-title">🔮 ATHERON Control Total</div>
-        <div class="control-status" id="nucleoStatusDisplay">
-            <span class="status-icon">🔘</span>
-            <span id="nucleoStatus" class="status-inactivo">Núcleo: INACTIVO TOTAL</span>
-        </div>
-        <div class="control-status" id="voiceStatusDisplay">
-            <span class="status-icon">🎤</span>
-            <span id="voiceStatus" class="status-inactivo">Voz: INACTIVO</span>
-        </div>
-        <div class="control-status" id="aiStatusDisplay">
-            <span class="status-icon">🤖</span>
-            <span id="aiStatus" class="status-inactivo">81 IAs: INACTIVO</span>
-        </div>
-        <div class="control-status" id="webStatusDisplay">
-            <span class="status-icon">🌐</span>
-            <span id="webStatus" class="status-inactivo">Web: INACTIVO</span>
-        </div>
-        
-        <div class="comando-info">
-            <div class="comando-titulo">🎯 Comandos de Control Específicos:</div>
-            <div class="comando-texto">
-                🟢 <strong>"Atheron activa núcleo"</strong><br>
-                🔴 <strong>"Atheron desactiva núcleo"</strong><br><br>
-                ⚠️ <strong>INACTIVO = TOTAL</strong><br>
-                ✅ <strong>Solo tu voz activa el sistema</strong>
-            </div>
-        </div>
+    <!-- Botón Control Discreto -->
+    <div class="atheron-toggle inactivo" id="atheronToggle" data-tooltip="ATHERON: INACTIVO">
+        <div class="toggle-icon">🔮</div>
     </div>
 
     <!-- Portal Header -->
@@ -729,16 +719,25 @@
         // 🎨 CONTROL DE ESTADOS VISUALES
         function setEstadoNucleo(estado) {
             const nucleo = document.getElementById('nucleoSimbiotico');
+            const toggle = document.getElementById('atheronToggle');
+            
             nucleo.className = `nucleo-simbiotico ${estado}`;
+            toggle.className = `atheron-toggle ${estado}`;
+            
+            // Actualizar tooltip
+            const tooltips = {
+                'inactivo': 'ATHERON: INACTIVO TOTAL',
+                'escuchando': 'ATHERON: ESCUCHANDO COMANDOS',
+                'activo': 'ATHERON: NÚCLEO OPERATIVO',
+                'procesando': 'ATHERON: PROCESANDO...'
+            };
+            
+            toggle.setAttribute('data-tooltip', tooltips[estado] || 'ATHERON');
         }
 
         function updateStatus(elementId, texto, estado, containerId) {
-            const elemento = document.getElementById(elementId);
-            const container = document.getElementById(containerId);
-            if (elemento && container) {
-                elemento.textContent = texto;
-                container.className = `control-status status-${estado}`;
-            }
+            // Función mantenida para compatibilidad pero sin mostrar panel
+            console.log(`Estado actualizado: ${texto}`);
         }
 
         // 📝 GESTIÓN DE LOGS
