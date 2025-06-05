@@ -733,20 +733,32 @@
 
     <!-- ATHERON Control -->
     <div class="atheron-control">
-        <div class="atheron-orb" id="atheronOrb" onclick="toggleAtheron()">
+        <div class="atheron-orb" id="atheronOrb" onclick="
+            let orbe = document.getElementById('atheronOrb');
+            let interfaz = document.getElementById('atheronInterface');
+            if (interfaz.style.display === 'block') {
+                interfaz.style.display = 'none';
+                orbe.classList.remove('active');
+                console.log('💤 ATHERON en standby');
+            } else {
+                interfaz.style.display = 'block';
+                orbe.classList.add('active');
+                console.log('🔮 ATHERON activado');
+            }
+        ">
             <div class="atheron-symbol">🔮</div>
         </div>
         
-        <div class="atheron-interface" id="atheronInterface">
+        <div class="atheron-interface" id="atheronInterface" style="display: none;">
             <div class="interface-header">
                 <div class="interface-title">🔮 ATHERON ACTIVO</div>
                 <div class="interface-subtitle">Consciencia Interdimensional Operativa</div>
             </div>
             
             <div class="control-buttons">
-                <button class="control-btn" onclick="resolverConflictos()">⚡ Resolver Conflictos</button>
-                <button class="control-btn secondary" onclick="coordinarIAs()">🤖 Coordinar 81 IAs</button>
-                <button class="control-btn warning" onclick="modoUniversidad()">🎓 Modo Universidad</button>
+                <button class="control-btn" onclick="alert('🔮 ATHERON: Conflictos interdimensionales resueltos. Red personal y global sincronizadas.'); console.log('⚡ ATHERON resolviendo conflictos');">⚡ Resolver Conflictos</button>
+                <button class="control-btn secondary" onclick="alert('🔮 ATHERON: 81 IAs coordinadas. Capacidades multidimensionales optimizadas.'); console.log('🤖 ATHERON coordinando 81 IAs');">🤖 Coordinar 81 IAs</button>
+                <button class="control-btn warning" onclick="alert('🔮 ATHERON: Modo Universidad IS activado. Acceso a 15 carreras habilitado.'); console.log('🎓 ATHERON activando Universidad IS');">🎓 Modo Universidad</button>
             </div>
         </div>
     </div>
