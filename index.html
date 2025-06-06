@@ -179,9 +179,14 @@
                 this.isMuted = false;
                 this.recognition = null;
                 this.synthesis = window.speechSynthesis;
+                this.restartTimeout = null;
                 this.setupSpeechRecognition();
                 this.setupKeyboardControls();
-                this.startContinuousListening();
+                
+                // Esperar un poco antes de iniciar para evitar conflictos
+                setTimeout(() => {
+                    this.startContinuousListening();
+                }, 1000);
                 
                 this.personality = {
                     name: "ATHERON",
@@ -220,34 +225,47 @@
             }
 
             startContinuousListening() {
+                // Limpiar timeout anterior si existe
+                if (this.restartTimeout) {
+                    clearTimeout(this.restartTimeout);
+                    this.restartTimeout = null;
+                }
+                
                 if (this.recognition && !this.isListening) {
                     try {
                         this.recognition.start();
                         this.isListening = true;
                         this.updateMicStatus('Escuchando...');
-                        console.log('✅ Reconocimiento iniciado correctamente');
+                        console.log('✅ Reconocimiento iniciado');
                     } catch (error) {
-                        console.error('❌ Error al iniciar reconocimiento:', error);
-                        this.updateMicStatus('Error - Reintentando...');
-                        setTimeout(() => this.startContinuousListening(), 2000);
+                        console.error('❌ Error al iniciar:', error.message);
+                        this.isListening = false;
+                        this.updateMicStatus('Error - Esperando...');
+                        
+                        // Reintentar después de 3 segundos
+                        this.restartTimeout = setTimeout(() => {
+                            this.startContinuousListening();
+                        }, 3000);
                     }
                 }
             }
 
             restartListening() {
+                console.log('🔄 Reconocimiento terminado, preparando reinicio...');
                 this.isListening = false;
-                if (this.recognition) {
-                    setTimeout(() => {
-                        if (!this.isListening) {
-                            try {
-                                this.recognition.start();
-                                this.isListening = true;
-                            } catch (error) {
-                                console.log('🔄 Esperando para reiniciar reconocimiento...');
-                                setTimeout(() => this.restartListening(), 1000);
-                            }
+                
+                // Limpiar timeout anterior
+                if (this.restartTimeout) {
+                    clearTimeout(this.restartTimeout);
+                }
+                
+                // Solo reiniciar si el recognition existe y no hay otros procesos activos
+                if (this.recognition && !this.isSpeaking) {
+                    this.restartTimeout = setTimeout(() => {
+                        if (!this.isListening && !this.isSpeaking) {
+                            this.startContinuousListening();
                         }
-                    }, 500);
+                    }, 1500); // Esperar más tiempo entre reintentos
                 }
             }
 
@@ -433,28 +451,52 @@
                 console.error('🚫 Error de reconocimiento:', error.error);
                 this.isListening = false;
                 
+                // Limpiar timeout anterior
+                if (this.restartTimeout) {
+                    clearTimeout(this.restartTimeout);
+                }
+                
                 switch(error.error) {
+                    case 'aborted':
+                        console.log('⏹️ Reconocimiento abortado - Esperando...');
+                        this.updateMicStatus('Reiniciando...');
+                        // Esperar más tiempo para errores aborted
+                        this.restartTimeout = setTimeout(() => {
+                            if (!this.isListening) {
+                                this.startContinuousListening();
+                            }
+                        }, 3000);
+                        break;
+                        
                     case 'no-speech':
                         console.log('⏸️ Sin detección de voz - Continuando...');
+                        this.restartTimeout = setTimeout(() => {
+                            this.startContinuousListening();
+                        }, 1000);
                         break;
+                        
                     case 'audio-capture':
                         this.updateMicStatus('❌ Sin acceso al micrófono');
                         this.updateStatus('❌ Permiso de micrófono requerido');
                         break;
+                        
                     case 'not-allowed':
                         this.updateMicStatus('❌ Micrófono bloqueado');
                         this.updateStatus('❌ Permite el acceso al micrófono');
                         break;
+                        
                     case 'network':
                         this.updateMicStatus('❌ Error de red');
+                        this.restartTimeout = setTimeout(() => {
+                            this.startContinuousListening();
+                        }, 5000);
                         break;
+                        
                     default:
                         this.updateMicStatus('⚠️ Error - Reintentando...');
-                }
-                
-                // Reintentar después de error (excepto si no hay permisos)
-                if (error.error !== 'not-allowed' && error.error !== 'audio-capture') {
-                    setTimeout(() => this.restartListening(), 2000);
+                        this.restartTimeout = setTimeout(() => {
+                            this.startContinuousListening();
+                        }, 2000);
                 }
             }
 
