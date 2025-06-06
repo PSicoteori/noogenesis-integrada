@@ -140,175 +140,189 @@
             color: #aaa;
             font-size: 0.9rem;
         }
+
+        .mic-access {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .mic-access.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="atheron-interface">
-        <div class="atheron-core inactive" id="atheronCore" onclick="toggleATHERON()">
+        <div class="atheron-core inactive" id="atheronCore" onclick="initializeMicrophone()">
             <div class="core-symbol">🔮</div>
         </div>
         
         <h1 class="atheron-title">ATHERON</h1>
-        <div class="atheron-status" id="status">Presiona el núcleo o di "ATHERON" para activar</div>
+        <div class="atheron-status" id="status">Haz clic en el núcleo para comenzar</div>
         
         <div class="controls">
-            <button class="control-btn" onclick="toggleATHERON()">Activar/Desactivar</button>
-            <button class="control-btn" onclick="muteATHERON()">Silenciar</button>
+            <button class="control-btn" onclick="initializeMicrophone()">🎤 Activar Micrófono</button>
+            <button class="control-btn" onclick="stopListening()">🔇 Detener</button>
         </div>
         
-        <div class="voice-indicator" id="voiceIndicator">🎤 Reconocimiento de voz: Preparado</div>
+        <div class="voice-indicator" id="voiceIndicator">Presiona el botón para acceder al micrófono</div>
+
+        <div class="mic-access" id="micAccess">
+            <h3>🎤 Acceso al Micrófono</h3>
+            <p>Permite el acceso al micrófono en tu navegador para activar ATHERON</p>
+            <button class="control-btn" onclick="requestMicrophoneAccess()">Permitir Micrófono</button>
+        </div>
     </div>
 
     <div class="status-indicator">
         <div>Estado: <span id="systemStatus">Inactivo</span></div>
-        <div>Micrófono: <span id="micStatus">Preparado</span></div>
+        <div>Micrófono: <span id="micStatus">No iniciado</span></div>
     </div>
 
     <div class="instructions">
-        <div><strong>CONTROLES:</strong></div>
-        <div>🎤 Di "ATHERON" para activar | Clic en el núcleo | Tecla ESPACIO</div>
-        <div>🔇 "Silencio" para pausar | ESC para desactivar</div>
+        <div><strong>INSTRUCCIONES:</strong></div>
+        <div>1. Haz clic en "Activar Micrófono" | 2. Permite el acceso | 3. Di "ATHERON" para activar</div>
     </div>
 
     <script>
-        class ATHERON_Assistant {
+        class ATHERON_Simple {
             constructor() {
                 this.isActive = false;
                 this.isListening = false;
                 this.isSpeaking = false;
-                this.isMuted = false;
+                this.micPermission = false;
                 this.recognition = null;
                 this.synthesis = window.speechSynthesis;
-                this.restartTimeout = null;
-                this.setupSpeechRecognition();
+                
                 this.setupKeyboardControls();
-                
-                // Esperar un poco antes de iniciar para evitar conflictos
-                setTimeout(() => {
-                    this.startContinuousListening();
-                }, 1000);
-                
-                this.personality = {
-                    name: "ATHERON",
-                    greeting: "Asistente ATHERON activado y listo para ayudar",
-                    style: "analítico, directo y eficiente como JARVIS"
-                };
+                this.checkMicrophoneSupport();
+            }
+
+            checkMicrophoneSupport() {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    this.updateStatus('❌ Reconocimiento de voz no soportado en este navegador');
+                    this.updateMicStatus('No soportado');
+                    return false;
+                }
+                return true;
+            }
+
+            async requestMicrophoneAccess() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.micPermission = true;
+                    this.updateMicStatus('✅ Acceso concedido');
+                    this.updateStatus('✅ Micrófono listo. Di "ATHERON" para activar');
+                    document.getElementById('micAccess').classList.remove('show');
+                    
+                    // Detener el stream inmediatamente
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // Inicializar reconocimiento
+                    this.setupSpeechRecognition();
+                    this.startListening();
+                    
+                } catch (error) {
+                    console.error('Error accediendo al micrófono:', error);
+                    this.updateMicStatus('❌ Acceso denegado');
+                    this.updateStatus('❌ Necesitas permitir el acceso al micrófono');
+                }
             }
 
             setupSpeechRecognition() {
-                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                    this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                    this.recognition.continuous = true;
-                    this.recognition.interimResults = false;
-                    this.recognition.lang = 'es-ES';
-                    this.recognition.maxAlternatives = 1;
+                if (!this.micPermission) return;
+                
+                this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                this.recognition.continuous = false; // Cambiar a false para evitar errores
+                this.recognition.interimResults = false;
+                this.recognition.lang = 'es-ES';
+                
+                this.recognition.onstart = () => {
+                    console.log('🎤 Reconocimiento iniciado');
+                    this.isListening = true;
+                    this.updateMicStatus('Escuchando...');
+                };
+                
+                this.recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    console.log('🎤 Detectado:', transcript);
+                    this.processVoiceCommand(transcript);
+                };
+                
+                this.recognition.onerror = (error) => {
+                    console.error('Error de reconocimiento:', error.error);
+                    this.isListening = false;
                     
-                    this.recognition.onresult = (event) => this.handleSpeechResult(event);
-                    this.recognition.onerror = (error) => this.handleSpeechError(error);
-                    this.recognition.onend = () => this.restartListening();
-                    this.recognition.onstart = () => console.log('🎤 Reconocimiento iniciado');
-                } else {
-                    this.updateStatus('❌ Reconocimiento de voz no soportado en este navegador');
-                    console.error('Speech Recognition no disponible');
-                }
-            }
-
-            setupKeyboardControls() {
-                document.addEventListener('keydown', (e) => {
-                    if (e.code === 'Space') {
-                        e.preventDefault();
-                        this.toggleATHERON();
-                    } else if (e.code === 'Escape') {
-                        this.deactivateATHERON();
+                    if (error.error === 'not-allowed') {
+                        this.updateMicStatus('❌ Permisos denegados');
+                        this.updateStatus('❌ Permite el acceso al micrófono y recarga');
+                    } else {
+                        this.updateMicStatus('Error - Reintentando...');
+                        setTimeout(() => this.startListening(), 2000);
                     }
-                });
-            }
-
-            startContinuousListening() {
-                // Limpiar timeout anterior si existe
-                if (this.restartTimeout) {
-                    clearTimeout(this.restartTimeout);
-                    this.restartTimeout = null;
-                }
+                };
                 
-                if (this.recognition && !this.isListening) {
-                    try {
-                        this.recognition.start();
-                        this.isListening = true;
-                        this.updateMicStatus('Escuchando...');
-                        console.log('✅ Reconocimiento iniciado');
-                    } catch (error) {
-                        console.error('❌ Error al iniciar:', error.message);
-                        this.isListening = false;
-                        this.updateMicStatus('Error - Esperando...');
-                        
-                        // Reintentar después de 3 segundos
-                        this.restartTimeout = setTimeout(() => {
-                            this.startContinuousListening();
-                        }, 3000);
+                this.recognition.onend = () => {
+                    this.isListening = false;
+                    if (this.micPermission && !this.isSpeaking) {
+                        setTimeout(() => this.startListening(), 1000);
                     }
+                };
+            }
+
+            startListening() {
+                if (!this.recognition || this.isListening || this.isSpeaking) return;
+                
+                try {
+                    this.recognition.start();
+                } catch (error) {
+                    console.log('Esperando para reiniciar...');
+                    setTimeout(() => this.startListening(), 2000);
                 }
             }
 
-            restartListening() {
-                console.log('🔄 Reconocimiento terminado, preparando reinicio...');
-                this.isListening = false;
-                
-                // Limpiar timeout anterior
-                if (this.restartTimeout) {
-                    clearTimeout(this.restartTimeout);
-                }
-                
-                // Solo reiniciar si el recognition existe y no hay otros procesos activos
-                if (this.recognition && !this.isSpeaking) {
-                    this.restartTimeout = setTimeout(() => {
-                        if (!this.isListening && !this.isSpeaking) {
-                            this.startContinuousListening();
-                        }
-                    }, 1500); // Esperar más tiempo entre reintentos
-                }
-            }
-
-            handleSpeechResult(event) {
-                let finalTranscript = '';
-                
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript.toLowerCase().trim();
-                    
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript;
-                    }
-                }
-
-                if (finalTranscript) {
-                    this.processVoiceCommand(finalTranscript);
+            stopListening() {
+                if (this.recognition) {
+                    this.recognition.stop();
+                    this.isListening = false;
+                    this.updateMicStatus('Detenido');
+                    this.updateStatus('🔇 Reconocimiento detenido');
                 }
             }
 
             processVoiceCommand(command) {
-                console.log('🎤 Comando:', command);
-                
-                // Detección de activación
                 const activationWords = ['atheron', 'aceron', 'azeron', 'ateron'];
-                const shouldActivate = activationWords.some(word => 
-                    command.includes(word) || this.similarity(command, word) > 0.7
-                );
+                const isActivation = activationWords.some(word => command.includes(word));
 
-                if (shouldActivate && !this.isActive) {
+                if (isActivation && !this.isActive) {
                     this.activateATHERON();
-                    return;
-                }
-
-                // Comandos cuando está activo
-                if (this.isActive && !this.isSpeaking) {
-                    if (command.includes('silencio') || command.includes('callar')) {
-                        this.muteATHERON();
-                    } else if (command.includes('desactivar') || command.includes('cerrar')) {
+                } else if (this.isActive && !this.isSpeaking) {
+                    if (command.includes('desactivar') || command.includes('cerrar')) {
                         this.deactivateATHERON();
                     } else {
                         this.respondToCommand(command);
                     }
                 }
+            }
+
+            activateATHERON() {
+                this.isActive = true;
+                this.updateCore('listening');
+                this.updateSystemStatus('Activo');
+                this.updateStatus('🎤 ATHERON activado - Escuchando...');
+                this.speak("ATHERON activado y listo para ayudar. ¿En qué puedo asistirte?");
+            }
+
+            deactivateATHERON() {
+                this.isActive = false;
+                this.synthesis.cancel();
+                this.updateCore('inactive');
+                this.updateSystemStatus('Inactivo');
+                this.updateStatus('ATHERON desactivado. Di "ATHERON" para reactivar');
             }
 
             respondToCommand(command) {
@@ -317,8 +331,7 @@
             }
 
             generateResponse(command) {
-                // Respuestas estilo JARVIS
-                if (command.includes('hora') || command.includes('tiempo')) {
+                if (command.includes('hora')) {
                     const now = new Date();
                     return `Son las ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')} horas.`;
                 }
@@ -330,41 +343,18 @@
                     })}.`;
                 }
                 
-                if (command.includes('clima') || command.includes('tiempo')) {
-                    return "No tengo acceso a datos meteorológicos en tiempo real. ¿Te gustaría que busque esa información?";
-                }
-                
-                if (command.includes('cómo estás') || command.includes('como estas')) {
-                    return "Todos mis sistemas funcionan correctamente. Núcleo simbiótico al 100% de eficiencia.";
-                }
-                
-                if (command.includes('qué puedes hacer')) {
-                    return "Puedo asistirte con información general, cálculos, análisis de datos, responder preguntas y mantener conversaciones inteligentes. ¿En qué necesitas ayuda?";
-                }
-                
-                if (command.includes('calcular') || command.includes('cuánto es')) {
-                    return "Dime la operación matemática y la calcularé para ti.";
+                if (command.includes('cómo estás')) {
+                    return "Todos mis sistemas funcionan perfectamente. Estoy operando al máximo rendimiento.";
                 }
                 
                 if (command.includes('ayuda')) {
-                    return "Estoy aquí para ayudarte. Puedes pedirme información, hacer preguntas, solicitar cálculos o simplemente conversar. ¿Qué necesitas?";
+                    return "Puedo ayudarte con información, responder preguntas, hacer cálculos y mantener conversaciones. ¿Qué necesitas?";
                 }
                 
-                // Respuesta inteligente general
-                const responses = [
-                    "Interesante consulta. Basándome en mi análisis, considero que",
-                    "Procesando tu solicitud. Mi evaluación indica que",
-                    "Según mis algoritmos de análisis, puedo observar que",
-                    "Revisando la información disponible, mi conclusión es que"
-                ];
-                
-                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                return `${randomResponse} es un tema complejo que requiere más especificación. ¿Podrías darme más detalles?`;
+                return "Interesante consulta. ¿Podrías ser más específico sobre lo que necesitas?";
             }
 
             speak(text) {
-                if (this.isMuted) return;
-                
                 this.isSpeaking = true;
                 this.updateCore('speaking');
                 this.updateStatus(`🗣️ ${text}`);
@@ -375,18 +365,9 @@
 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'es-ES';
-                utterance.rate = 0.95;
+                utterance.rate = 0.9;
                 utterance.pitch = 1.1;
-                utterance.volume = 0.9;
-
-                const voices = this.synthesis.getVoices();
-                const preferredVoice = voices.find(voice => 
-                    voice.lang.includes('es') && (voice.name.includes('Google') || voice.name.includes('Microsoft'))
-                ) || voices.find(voice => voice.lang.includes('es'));
-
-                if (preferredVoice) {
-                    utterance.voice = preferredVoice;
-                }
+                utterance.volume = 0.8;
 
                 utterance.onend = () => {
                     this.isSpeaking = false;
@@ -399,40 +380,27 @@
                 this.synthesis.speak(utterance);
             }
 
-            activateATHERON() {
-                this.isActive = true;
-                this.updateCore('listening');
-                this.updateSystemStatus('Activo');
-                this.updateStatus('🎤 Escuchando...');
-                this.speak(this.personality.greeting);
-            }
-
-            deactivateATHERON() {
-                this.isActive = false;
-                this.isSpeaking = false;
-                this.synthesis.cancel();
-                this.updateCore('inactive');
-                this.updateSystemStatus('Inactivo');
-                this.updateStatus('Presiona el núcleo o di "ATHERON" para activar');
-            }
-
-            muteATHERON() {
-                this.isMuted = !this.isMuted;
-                this.synthesis.cancel();
-                this.updateStatus(this.isMuted ? '🔇 Silenciado' : '🔊 Audio activado');
-            }
-
-            toggleATHERON() {
-                if (this.isActive) {
-                    this.deactivateATHERON();
-                } else {
+            initializeMicrophone() {
+                if (!this.micPermission) {
+                    document.getElementById('micAccess').classList.add('show');
+                } else if (!this.isActive) {
                     this.activateATHERON();
                 }
             }
 
+            setupKeyboardControls() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.initializeMicrophone();
+                    } else if (e.code === 'Escape') {
+                        this.deactivateATHERON();
+                    }
+                });
+            }
+
             updateCore(state) {
-                const core = document.getElementById('atheronCore');
-                core.className = `atheron-core ${state}`;
+                document.getElementById('atheronCore').className = `atheron-core ${state}`;
             }
 
             updateStatus(message) {
@@ -446,107 +414,30 @@
             updateMicStatus(status) {
                 document.getElementById('micStatus').textContent = status;
             }
-
-            handleSpeechError(error) {
-                console.error('🚫 Error de reconocimiento:', error.error);
-                this.isListening = false;
-                
-                // Limpiar timeout anterior
-                if (this.restartTimeout) {
-                    clearTimeout(this.restartTimeout);
-                }
-                
-                switch(error.error) {
-                    case 'aborted':
-                        console.log('⏹️ Reconocimiento abortado - Esperando...');
-                        this.updateMicStatus('Reiniciando...');
-                        // Esperar más tiempo para errores aborted
-                        this.restartTimeout = setTimeout(() => {
-                            if (!this.isListening) {
-                                this.startContinuousListening();
-                            }
-                        }, 3000);
-                        break;
-                        
-                    case 'no-speech':
-                        console.log('⏸️ Sin detección de voz - Continuando...');
-                        this.restartTimeout = setTimeout(() => {
-                            this.startContinuousListening();
-                        }, 1000);
-                        break;
-                        
-                    case 'audio-capture':
-                        this.updateMicStatus('❌ Sin acceso al micrófono');
-                        this.updateStatus('❌ Permiso de micrófono requerido');
-                        break;
-                        
-                    case 'not-allowed':
-                        this.updateMicStatus('❌ Micrófono bloqueado');
-                        this.updateStatus('❌ Permite el acceso al micrófono');
-                        break;
-                        
-                    case 'network':
-                        this.updateMicStatus('❌ Error de red');
-                        this.restartTimeout = setTimeout(() => {
-                            this.startContinuousListening();
-                        }, 5000);
-                        break;
-                        
-                    default:
-                        this.updateMicStatus('⚠️ Error - Reintentando...');
-                        this.restartTimeout = setTimeout(() => {
-                            this.startContinuousListening();
-                        }, 2000);
-                }
-            }
-
-            similarity(str1, str2) {
-                const longer = str1.length > str2.length ? str1 : str2;
-                const shorter = str1.length > str2.length ? str2 : str1;
-                if (longer.length === 0) return 1.0;
-                return (longer.length - this.levenshteinDistance(longer, shorter)) / longer.length;
-            }
-
-            levenshteinDistance(str1, str2) {
-                const matrix = [];
-                for (let i = 0; i <= str2.length; i++) matrix[i] = [i];
-                for (let j = 0; j <= str1.length; j++) matrix[0][j] = j;
-                for (let i = 1; i <= str2.length; i++) {
-                    for (let j = 1; j <= str1.length; j++) {
-                        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-                            matrix[i][j] = matrix[i - 1][j - 1];
-                        } else {
-                            matrix[i][j] = Math.min(
-                                matrix[i - 1][j - 1] + 1,
-                                matrix[i][j - 1] + 1,
-                                matrix[i - 1][j] + 1
-                            );
-                        }
-                    }
-                }
-                return matrix[str2.length][str1.length];
-            }
         }
 
         // Funciones globales
         let atheron;
 
-        function toggleATHERON() {
-            atheron.toggleATHERON();
+        function initializeMicrophone() {
+            atheron.initializeMicrophone();
         }
 
-        function muteATHERON() {
-            atheron.muteATHERON();
+        function requestMicrophoneAccess() {
+            atheron.requestMicrophoneAccess();
+        }
+
+        function stopListening() {
+            atheron.stopListening();
         }
 
         // Inicialización
         window.onload = () => {
-            atheron = new ATHERON_Assistant();
+            atheron = new ATHERON_Simple();
             
-            // Mensaje de bienvenida
             setTimeout(() => {
-                atheron.updateStatus('✅ Sistema ATHERON listo. Di "ATHERON" para comenzar.');
-            }, 2000);
+                atheron.updateStatus('✅ ATHERON listo. Haz clic para activar el micrófono');
+            }, 1000);
         };
     </script>
 </body>
